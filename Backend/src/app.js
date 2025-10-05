@@ -4,6 +4,9 @@ const app = express()
 
 app.use(express.json());
 
+const userRouter = require('./Routes/user');
+app.use('/', userRouter)
+
 connectDB().then(() => {
     console.log('Database connected successfully');
     app.listen(3000, () => {

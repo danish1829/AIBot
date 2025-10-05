@@ -1,6 +1,6 @@
 const express = require('express');
 const userRouter = express.Router();
-const User = require('./../models/user');
+const User = require('../models/user');
 const bcrypt = require('bcrypt');
 
 // Create a new user
@@ -29,3 +29,5 @@ userRouter.post('/user/signup', async (req, res) => {
         })
     }
 })
+
+module.exports = userRouter;
