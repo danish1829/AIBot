@@ -2,6 +2,7 @@ const express = require('express');
 const interviewRouter = express.Router();
 const InterviewSession = require("../models/interviewSession");
 const OpenAI = require("openai");
+require('dotenv').config();
 const authValidation = require('../middleware/authValidation');
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -59,6 +60,55 @@ interviewRouter.post("/interview/start", authValidation, async (req, res) => {
     });
   }
 });
+
+interviewRouter.post(
+  "/interview/answer",
+  authValidation,
+  async (req, res) => {
+    try {
+      const { sessionId, question, answer } = req.body;
+      const userId = req.user.id;
+
+      if (!sessionId || !question || !answer) {
+        return res.status(400).json({ error: "sessionId, question and answer are required" });
+      }
+
+      // Find the interview session
+      const session = await InterviewSession.findOne({ _id: sessionId, user: userId });
+      if (!session) {
+        return res.status(404).json({ error: "Interview session not found" });
+      }
+
+      // Send question + answer to OpenAI for evaluation
+      const aiResponse = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `Evaluate this answer: "${answer}" for the interview question: "${question}". 
+                      Provide constructive feedback, a score out of 10, and suggestions to improve. 
+                      Keep the response concise.`,
+          },
+        ],
+      });
+
+      const feedback = aiResponse?.choices?.[0]?.message?.content || "No feedback received";
+
+      // Save answer and feedback in session
+      session.answers.push(answer);
+      session.feedback.push(feedback);
+      await session.save();
+
+      res.status(200).json({
+        message: "Answer recorded and feedback received",
+        feedback,
+      });
+    } catch (error) {
+      console.error("Error in /interview/answer:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
 
 
 interviewRouter.get("/interview/history", authValidation, async (req, res) => {
