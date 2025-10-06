@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema({
             message: 'Password is not strong enough'
         }
     },
+    googleId: {
+               type: String,
+               unique: true,
+               sparse: true
+          },
     gender: {
         type: String,
         enum: {
